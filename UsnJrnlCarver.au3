@@ -4,35 +4,28 @@
 #AutoIt3Wrapper_Change2CUI=y
 #AutoIt3Wrapper_Res_Comment=Extracts raw UsnJrnl records
 #AutoIt3Wrapper_Res_Description=Extracts raw UsnJrnl records
-#AutoIt3Wrapper_Res_Fileversion=1.0.0.0
+#AutoIt3Wrapper_Res_Fileversion=1.0.0.1
 #AutoIt3Wrapper_Res_requestedExecutionLevel=asInvoker
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 #Include <WinAPIEx.au3>
 
 Global Const $UsnSignature = "000002000000"
 Global Const $USN_Page_Size = 4096
+Global $OutputPath,$File
 
-ConsoleWrite("UsnJrnlCarver v1.0.0.0" & @CRLF)
+ConsoleWrite("UsnJrnlCarver v1.0.0.1" & @CRLF)
+
+_GetInputParams()
 
 $TimestampStart = @YEAR & "-" & @MON & "-" & @MDAY & "_" & @HOUR & "-" & @MIN & "-" & @SEC
-$logfile = FileOpen(@ScriptDir & "\" & $TimestampStart & ".log",2+32)
+$logfilename = $OutputPath & "\Carver_UsnJrnl_" & $TimestampStart & ".log"
+$logfile = FileOpen($logfilename,2+32)
 If @error Then
-	ConsoleWrite("Error creating: " & @ScriptDir & "\" & $TimestampStart & ".log" & @CRLF)
+	ConsoleWrite("Error creating: " & $logfilename & @CRLF)
 	Exit
 EndIf
 
-If $cmdline[0] <> 1 Then ;No parameters passed
-	$File = FileOpenDialog("Select file",@ScriptDir,"All (*.*)")
-	If @error Then Exit
-ElseIf FileExists($cmdline[1]) = 0 Then
-	ConsoleWrite("Input file does not exist: " & $cmdline[1] & @CRLF)
-	$File = FileOpenDialog("Select file",@ScriptDir,"All (*.*)")
-	If @error Then Exit
-Else
-	$File = $cmdline[1]
-EndIf
-
-$OutFileUsnPages = $File&"."&$TimestampStart&".UsnJrnl"
+$OutFileUsnPages = $OutputPath & "\Carver_UsnJrnl_" & $TimestampStart & ".bin"
 If FileExists($OutFileUsnPages) Then
 	_DebugOut("Error outfile exist: " & $OutFileUsnPages)
 	Exit
@@ -191,4 +184,32 @@ Func _DebugOut($text, $var="")
    $text &= @CRLF & $var
    ConsoleWrite($text)
    If $logfile Then FileWrite($logfile, $text)
+EndFunc
+
+Func _GetInputParams()
+
+	For $i = 1 To $cmdline[0]
+		;ConsoleWrite("Param " & $i & ": " & $cmdline[$i] & @CRLF)
+		If StringLeft($cmdline[$i],11) = "/InputFile:" Then $File = StringMid($cmdline[$i],12)
+		If StringLeft($cmdline[$i],12) = "/OutputPath:" Then $OutputPath = StringMid($cmdline[$i],13)
+	Next
+
+	If $File="" Then ;No InputFile parameter passed
+		$File = FileOpenDialog("Select file",@ScriptDir,"All (*.*)")
+		If @error Then Exit
+	ElseIf FileExists($File) = 0 Then
+		ConsoleWrite("Input file does not exist: " & $cmdline[1] & @CRLF)
+		$File = FileOpenDialog("Select file",@ScriptDir,"All (*.*)")
+		If @error Then Exit
+	EndIf
+
+	If StringLen($OutputPath) > 0 Then
+		If Not FileExists($OutputPath) Then
+			ConsoleWrite("Error input $OutputPath does not exist. Setting default to program directory." & @CRLF)
+			$OutputPath = @ScriptDir
+		EndIf
+	Else
+		$OutputPath = @ScriptDir
+	EndIf
+
 EndFunc
